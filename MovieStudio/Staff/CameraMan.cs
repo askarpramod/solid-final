@@ -4,7 +4,7 @@ using System;
 
 namespace MovieStudio.Staff
 {
-    public class CameraMan : StudioEmployee, IEmployeeFunctionality
+    public class CameraMan : StudioEmployee, ICameraman
     {
         public CameraMan(string name) : base(name, JobSalary.CAMERA_MAN)
         {

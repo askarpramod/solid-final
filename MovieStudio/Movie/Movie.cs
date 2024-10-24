@@ -1,39 +1,58 @@
-﻿using MovieStudio.Staff;
-using MovieStudio.Staff.Team;
+﻿using MovieStudio.Staff.Team;
 using MovieStudio.Thirdparty;
 using System.Collections.Generic;
 
 namespace MovieStudio.Movie
 {
-    public class Movie
-    {      
+    public class BaseMovie
+    {
         public string Name { get; set; }
         public Genre Genre { get; set; }
         public int DaysInProduction { get; set; }
         public bool IsFinished { get; private set; }
+
+        public BaseMovie(string name, Genre genre)
+        {
+            Name = name;
+            Genre = genre;
+            IsFinished = false;
+            DaysInProduction = 0;
+        }
+
+        public void Success()
+        {
+            IsFinished = true;
+        }
+
+        public void UpdateContent()
+        {
+            DaysInProduction++;
+        }
+
+        public override string ToString()
+        {
+            return $"Movie {Name} [{Genre}], status: {(IsFinished ? "finished" : "in production")}, days in production: {DaysInProduction}";
+        }
+    }
+
+    public class Movie : BaseMovie
+    {
         public Dictionary<string, int> Crew { get; set; }
         public List<string> Superstars { get; set; }
 
-        public Movie()
+        public Movie(string name, Genre genre, StudioStaff staff) : base(name, genre)
         {
+            Crew = new Dictionary<string, int>();
+            Superstars = new List<string>();
+            SetCrewFromStaffCollection(staff);
         }
 
-        public Movie(string name, Genre genre, StudioStaff staff)
-        {
-            this.Name = name;
-            this.Genre = genre;
-            this.IsFinished = false;
-            this.DaysInProduction = 0;
-            this.Crew = new Dictionary<string, int>();
-            this.Superstars = new List<string>();
-            this.SetCrewFromStaffCollection(staff);
-        }
         public void SetCrewFromStaffCollection(StudioStaff crew)
         {
-            this.Crew.Add("Actor", crew.Actors.Count);
-            this.Crew.Add("Cameraman", crew.Cameramen.Count);
+            Crew["Actor"] = crew.Actors.Count;
+            Crew["Cameraman"] = crew.Cameramen.Count;
 
-            foreach (Actor actor in crew.Actors)
+            foreach (var actor in crew.Actors)
             {
                 if (actor.IsSuperStar())
                 {
@@ -41,23 +60,5 @@ namespace MovieStudio.Movie
                 }
             }
         }
-
-        public void Success()
-        {
-            this.IsFinished = true;
-        }
-
-        public void UpdateContent()
-        {
-            this.DaysInProduction++;
-        }
-
-
-        public override string ToString()
-        {
-            return string.Format($"Movie {Name} [{Genre}], status: {(IsFinished ? "finished" : "in production")}, days in production:{DaysInProduction}");
-        }
-
-
     }
 }

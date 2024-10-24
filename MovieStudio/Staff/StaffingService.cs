@@ -1,10 +1,11 @@
-﻿using MovieStudio.Staff.Team;
+﻿using MovieStudio.Interfaces;
+using MovieStudio.Staff.Team;
 using MovieStudio.Thirdparty;
 using System.Collections.Generic;
 
 namespace MovieStudio.Staff
 {
-    public class StaffingService
+    public class StaffingService : IStaffHiringService, IStaffManagementService
     {
         public List<StudioEmployee> Staff { get; }
 
@@ -12,7 +13,6 @@ namespace MovieStudio.Staff
         {
             Staff = new List<StudioEmployee>();
         }
-
 
         public void HireNewStaff(StudioEmployee[] persons)
         {
@@ -24,6 +24,5 @@ namespace MovieStudio.Staff
             Staff.AddRange(movieDefinition.Actors);
             Staff.AddRange(movieDefinition.Cameramen);
         }
-
     }
 }

@@ -1,58 +1,44 @@
 ﻿using MovieStudio.Interfaces;
+using MovieStudio.Movie;
 using MovieStudio.Staff;
-using MovieStudio.Thirdparty;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using YamlDotNet.Serialization;
 
-namespace MovieStudio.Movie
+namespace MovieStudio
 {
-    public class ProductionService
+    public class ProductionService : IProductionService
     {
-        private MovieProductionSchedule _productionSchedule;
-        public List<Movie> MovieArchive { get; }
+        private readonly IMovieProductionSchedule _productionSchedule;
+        public List<Movie.Movie> MovieArchive { get; private set; }
 
-        public ProductionService()
+        public ProductionService(IMovieProductionSchedule productionSchedule)
         {
-            MovieArchive = new List<Movie>();
+            MovieArchive = new List<Movie.Movie>();
+            _productionSchedule = productionSchedule;
         }
+
         public virtual MovieStatistics LoadMovieDatabase(string fileName)
         {
-
             var movies = ReadArchivedMovie(fileName);
-
-            try
-            {
-                AddMoviesToArchive(movies);
-                return GetArchiveStatistics();
-            }
-            catch (IOException)
-            {
-                Console.WriteLine("Movie archive is damaged or empty");
-                return new MovieStatistics(new List<Movie>());
-            }
-
+            AddMoviesToArchive(movies);
+            return GetArchiveStatistics();
         }
 
-        private List<Movie> ReadArchivedMovie(string filename)
+        private List<Movie.Movie> ReadArchivedMovie(string filename)
         {
             var resource = ReadResourceFile(filename);
-
             var deserializer = new DeserializerBuilder().Build();
-
-            var movie = deserializer.Deserialize<List<Movie>>(resource);
-
-            return movie;
+            return deserializer.Deserialize<List<Movie.Movie>>(resource);
         }
+
         private string ReadResourceFile(string name)
         {
             var assembly = Assembly.GetExecutingAssembly();
             string resourcePath = assembly.GetManifestResourceNames()
                     .Single(str => str.EndsWith(name));
-
 
             using (Stream stream = assembly.GetManifestResourceStream(resourcePath))
             using (StreamReader reader = new StreamReader(stream))
@@ -63,35 +49,28 @@ namespace MovieStudio.Movie
 
         private MovieStatistics GetArchiveStatistics()
         {
-            MovieStatistics movieStatistics = new MovieStatistics(MovieArchive);
-
-            Console.WriteLine($"Movies in archive: { MovieArchive.Count}");
-            MovieArchive.ForEach(movie =>
+            var movieStatistics = new MovieStatistics(MovieArchive);
+            foreach (var movie in MovieArchive)
             {
                 string currentMovieGenre = movie.Genre.ToString();
-                movieStatistics.MovieGenres.Add(
-                        currentMovieGenre,
-                        movieStatistics.MovieGenres.FirstOrDefault(x => x.Key.Contains(currentMovieGenre)).Value);
+                movieStatistics.MovieGenres.TryGetValue(currentMovieGenre, out int genreCount);
+                movieStatistics.MovieGenres[currentMovieGenre] = genreCount + 1;
 
-            });
-            MovieArchive.ForEach(movie =>
-            {
                 movieStatistics.IncActorsCount(movie.Crew.FirstOrDefault(x => x.Key.Contains("Actor")).Value);
                 movieStatistics.IncCameramenCount(movie.Crew.FirstOrDefault(x => x.Key.Contains("Cameraman")).Value);
                 movieStatistics.AddSuperStars(movie.Superstars);
-            });
+            }
             return movieStatistics;
         }
 
-        private List<Movie> AddMoviesToArchive(List<Movie> movies)
+        private void AddMoviesToArchive(List<Movie.Movie> movies)
         {
             MovieArchive.AddRange(movies);
-            return MovieArchive;
         }
 
         public void InitMovieProduction(int daysInProduction)
         {
-            this._productionSchedule = new MovieProductionSchedule(daysInProduction);
+            _productionSchedule.SetDays(daysInProduction);
         }
 
         public bool CanContinueProduction()
@@ -101,23 +80,17 @@ namespace MovieStudio.Movie
 
         public void Progress()
         {
-            _productionSchedule.DaysInProduction = _productionSchedule.DaysInProduction - 1;
+            _productionSchedule.DecrementDays();
         }
 
-        public bool LightsCameraAction(StaffingService staffingService)
+        public bool LightsCameraAction(IStaffManagementService staffManagementService)
         {
-            List<StudioEmployee> studioEmployees = staffingService.Staff;
-
-            var allActorsPerformed = studioEmployees.Where(staff => staff is Actor).All(actor => ((IEmployeeFunctionality)actor).Act() && ((IEmployeeFunctionality)actor).Shoot());
-            var allCameraMenPerformed = studioEmployees.Where(staff => staff is CameraMan).All(cameraman => ((IEmployeeFunctionality)cameraman).Act() && ((IEmployeeFunctionality)cameraman).Shoot());
-            
-            return allActorsPerformed && allCameraMenPerformed;
+            return staffManagementService.Staff.OfType<ICameraman>().All(cameraman => cameraman.Shoot());
         }
 
         public int GetProgress()
         {
             return _productionSchedule.DaysInProduction;
         }
-
     }
 }

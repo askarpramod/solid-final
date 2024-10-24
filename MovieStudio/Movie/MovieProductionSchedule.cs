@@ -1,13 +1,27 @@
-﻿namespace MovieStudio.Movie
+﻿using MovieStudio.Interfaces;
+
+namespace MovieStudio.Movie
 {
-    public class MovieProductionSchedule
+    public class MovieProductionSchedule : IMovieProductionSchedule
     {
-        public int DaysInProduction { get; set; }
+        public int DaysInProduction { get; private set; }
 
         public MovieProductionSchedule(int daysInProduction)
         {
-            this.DaysInProduction = daysInProduction;
+            DaysInProduction = daysInProduction;
         }
 
+        public void SetDays(int days)
+        {
+            DaysInProduction = days;
+        }
+
+        public void DecrementDays()
+        {
+            if (DaysInProduction > 0)
+            {
+                DaysInProduction--;
+            }
+        }
     }
 }
